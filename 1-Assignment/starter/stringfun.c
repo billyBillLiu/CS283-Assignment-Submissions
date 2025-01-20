@@ -25,26 +25,25 @@ int setup_buff(char *buff, char *user_str, int len){
     int count = 0;
     int str_len = 0;
 
-    // while the input pointer is not null (end) and count is less than the buffer size, loop:
     while (*input_pointer != '\0' && count < len) {
-        if (!is_whitespace(*input_pointer)) { // if the current input character is not a whitespace:
-            *buffer_pointer++ = *input_pointer ; // add it to the buffer
+        if (!is_whitespace(*input_pointer)) { // add all non whitespace characters to buffer
+            *buffer_pointer++ = *input_pointer ;
             count++;
-        } else if (count > 0 && *(buffer_pointer - 1) != ' ') { // if the curremt input character is a whitespace and the previous buffer character is not a whitespace:
-            *buffer_pointer++ = ' '; // add a space to the buffer (this ensures there is only one space maximum between words)
+        } else if (count > 0 && *(buffer_pointer - 1) != ' ') { // at most one single space is added beween words
+            *buffer_pointer++ = ' '; 
             count++;
-        } // count is incremented every time a character is added to the buffer to keep track of the current buffer size used
+        } // count is incremented every time a character is added to keep track of the curremt buffer size used
         input_pointer++;
     }
 
-    if (*input_pointer != '\0') { // this will only be true if the string is longer than len (which is the BUFFER_SZ).
-        return -1; // this means the string is too big for the buffer so return -1
+    if (*input_pointer != '\0') { // since the loop above stops at '\0' or when max buffer size is reached, this will only be true if the string is longer than BUFFER_SIZE
+        return -1; 
     }
 
-    str_len = buffer_pointer - buff; // calculate the length of the string by subtracting where the buffer pointer ends from the start of the buffer allocation
+    str_len = buffer_pointer - buff; // calculates the length of string using memory pointers 
 
-    while (count < len) { // if the buffer still has space:
-        *buffer_pointer++ = '.'; // fill the rest of the buffer with periods
+    while (count < len) { // fill the rest of the space with "."
+        *buffer_pointer++ = '.'; 
         count++; 
     }
 
@@ -85,20 +84,43 @@ int is_whitespace(char c) {
 
 char* reverse_string(char *buff, int len){
     int i = 0;
-    char *reversed_string = (char *)malloc(len + 1);
+    char *reversed_string = (char *)malloc(len + 1); // malloc a new string that fits the string exactly
 
     while (i < len && buff[i] != '\0') {
-        reversed_string[i] = buff[len - 1 - i];
+        reversed_string[i] = buff[len - 1 - i]; // copy the string in reverse
         i++;
     }
     reversed_string[i] = '\0';
     return reversed_string;
 }
 
-void print_words(char *buff, int len) {
-    int word_count = 0;
+void print_words(char *buff, int str_len) {
     printf("Word Print\n");
     printf("----------\n");
+    int word_count = 1;
+    char *start_of_word = buff;
+    char *end_of_word = buff;
+
+    while (start_of_word < buff + str_len) {
+
+        while (start_of_word < buff + str_len && is_whitespace(*start_of_word)) { // ignore leading whitespace
+            start_of_word++;
+        }
+        end_of_word = start_of_word;
+
+        while (end_of_word < buff + str_len && !is_whitespace(*end_of_word)) { // put the end_of_word pointer at the end of the current word
+            end_of_word++;
+        }
+
+        if (start_of_word < end_of_word) {
+            printf("%d. ", word_count++); // print word number
+            for (char *ptr = start_of_word; ptr < end_of_word; ptr++) { //print everything betweeen the two pointers
+                putchar(*ptr);
+            }
+            printf(" (%ld)\n", end_of_word - start_of_word); // end_of_word - start_of_word = length of word
+        }
+        start_of_word = end_of_word;
+    }
 }
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
@@ -175,7 +197,7 @@ int main(int argc, char *argv[]){
         case 'r':
             char *reversed_string = reverse_string(buff, user_str_len);
             printf("Reversed String: %s\n", reversed_string);
-            free(reversed_string);
+            free(reversed_string); // a reverse streing was malloced in reverse_string function
             break;
 
         case 'w':
