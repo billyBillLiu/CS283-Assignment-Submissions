@@ -12,12 +12,43 @@ int  setup_buff(char *, char *, int);
 
 //prototypes for functions to handle required functionality
 int  count_words(char *, int, int);
+int is_whitespace(char c);
+char* reverse_string(char *, int);
+void print_words(char *, int);
 //add additional prototypes here
 
 
 int setup_buff(char *buff, char *user_str, int len){
     //TODO: #4:  Implement the setup buff as per the directions
-    return 0; //for now just so the code compiles. 
+    char *buffer_pointer = buff;
+    char *input_pointer = user_str;
+    int count = 0;
+    int str_len = 0;
+
+    // while the input pointer is not null (end) and count is less than the buffer size, loop:
+    while (*input_pointer != '\0' && count < len) {
+        if (!is_whitespace(*input_pointer)) { // if the current input character is not a whitespace:
+            *buffer_pointer++ = *input_pointer ; // add it to the buffer
+            count++;
+        } else if (count > 0 && *(buffer_pointer - 1) != ' ') { // if the curremt input character is a whitespace and the previous buffer character is not a whitespace:
+            *buffer_pointer++ = ' '; // add a space to the buffer (this ensures there is only one space maximum between words)
+            count++;
+        } // count is incremented every time a character is added to the buffer to keep track of the current buffer size used
+        input_pointer++;
+    }
+
+    if (*input_pointer != '\0') { // this will only be true if the string is longer than len (which is the BUFFER_SZ).
+        return -1; // this means the string is too big for the buffer so return -1
+    }
+
+    str_len = buffer_pointer - buff; // calculate the length of the string by subtracting where the buffer pointer ends from the start of the buffer allocation
+
+    while (count < len) { // if the buffer still has space:
+        *buffer_pointer++ = '.'; // fill the rest of the buffer with periods
+        count++; 
+    }
+
+    return str_len;
 }
 
 void print_buff(char *buff, int len){
@@ -34,8 +65,40 @@ void usage(char *exename){
 }
 
 int count_words(char *buff, int len, int str_len){
-    //YOU MUST IMPLEMENT
-    return 0;
+    int word_counter = 0;
+    int in_a_word = 0;
+
+    for (int i = 0; i < str_len; i++){
+        if (!is_whitespace(buff[i]) && !in_a_word){
+            word_counter++;
+            in_a_word = 1;
+        } else if (is_whitespace(buff[i])){
+            in_a_word = 0;
+        }
+    }
+    return word_counter;
+}
+
+int is_whitespace(char c) {
+    return (c == ' ' || c == '\t' || c == '\n');
+}
+
+char* reverse_string(char *buff, int len){
+    int i = 0;
+    char *reversed_string = (char *)malloc(len + 1);
+
+    while (i < len && buff[i] != '\0') {
+        reversed_string[i] = buff[len - 1 - i];
+        i++;
+    }
+    reversed_string[i] = '\0';
+    return reversed_string;
+}
+
+void print_words(char *buff, int len) {
+    int word_count = 0;
+    printf("Word Print\n");
+    printf("----------\n");
 }
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
@@ -49,7 +112,10 @@ int main(int argc, char *argv[]){
     int  user_str_len;      //length of user supplied string
 
     //TODO:  #1. WHY IS THIS SAFE, aka what if arv[1] does not exist?
-    //      PLACE A COMMENT BLOCK HERE EXPLAINING
+    /*
+    This is safe because if argc is less than 2, then the program knows argv[1] does not exist and exits.
+    If argc is greater than 2, then the program checks to see if argv[1] is a standard input option. If not, then it exits.
+    */
     if ((argc < 2) || (*argv[1] != '-')){
         usage(argv[0]);
         exit(1);
@@ -66,7 +132,11 @@ int main(int argc, char *argv[]){
     //WE NOW WILL HANDLE THE REQUIRED OPERATIONS
 
     //TODO:  #2 Document the purpose of the if statement below
-    //      PLACE A COMMENT BLOCK HERE EXPLAINING
+    /*
+    This statement checks if the argument count is less than 3. If it is, then it means it is missing an argument.
+    There should be three arguments, program name, option, and string.
+    */
+    
     if (argc < 3){
         usage(argv[0]);
         exit(1);
@@ -78,9 +148,15 @@ int main(int argc, char *argv[]){
     //          handle error if malloc fails by exiting with a 
     //          return code of 99
     // CODE GOES HERE FOR #3
+    buff = (char *)malloc(BUFFER_SZ);
+    if (buff == NULL){
+        printf("Error allocating buffer, error");
+        exit(99);
+    }
 
 
     user_str_len = setup_buff(buff, input_string, BUFFER_SZ);     //see todos
+    // printf("User String Length: %d\n", user_str_len);
     if (user_str_len < 0){
         printf("Error setting up buffer, error = %d", user_str_len);
         exit(2);
@@ -96,15 +172,27 @@ int main(int argc, char *argv[]){
             printf("Word Count: %d\n", rc);
             break;
 
+        case 'r':
+            char *reversed_string = reverse_string(buff, user_str_len);
+            printf("Reversed String: %s\n", reversed_string);
+            free(reversed_string);
+            break;
+
+        case 'w':
+            print_words(buff, user_str_len);
+            break;
+
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
         default:
             usage(argv[0]);
+            free(buff);
             exit(1);
     }
 
     //TODO:  #6 Dont forget to free your buffer before exiting
     print_buff(buff,BUFFER_SZ);
+    free(buff);
     exit(0);
 }
 
@@ -115,3 +203,11 @@ int main(int argc, char *argv[]){
 //          the buff variable will have exactly 50 bytes?
 //  
 //          PLACE YOUR ANSWER HERE
+/*
+If the functions only took the buffer pointer,
+then the function would not know when to stop,
+or we would have to set a predetermined size for the buffer in the function,
+making the function less versatile.
+Passing the length of the buffer and string as an argument, lets the functions work with string lengths and buffers of any size.
+This makes the functions reusable and easier to maintain. It also helps manage overflowing/oversized buffers.
+*/
