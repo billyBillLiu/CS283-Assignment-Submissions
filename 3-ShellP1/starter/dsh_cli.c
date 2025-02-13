@@ -78,6 +78,20 @@ int main()
             break;
         }
 
+        if (strcmp(cmd_buff, "dragon") == 0)
+        {
+            FILE *file = fopen("dragon.txt", "r");
+            char line[256];
+            while (fgets(line, sizeof(line), file))
+            {
+                printf("%s", line);
+            }
+            printf("\n");
+            fclose(file);
+            continue;
+        }
+
+
         // Parse the command using parse_command_list
         rc = build_cmd_list(cmd_buff, &clist);
         if (rc == ERR_TOO_MANY_COMMANDS)
