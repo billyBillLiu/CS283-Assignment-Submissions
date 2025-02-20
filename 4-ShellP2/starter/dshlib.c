@@ -66,7 +66,7 @@
              break;
          }
  
-         // Trim leading and trailing spaces
+         // trim whitespace
          char *start = cmd_buff;
          while (isspace((unsigned char)*start))
              start++;
@@ -81,7 +81,7 @@
              continue;
          }
  
-         // Handle quoted arguments and space elimination
+         // handle quotes
          char *p = start;
          bool in_quotes = false;
          char *arg_start = NULL;
@@ -93,18 +93,18 @@
                  in_quotes = !in_quotes;
                  if (in_quotes)
                  {
-                     arg_start = p + 1; // Start of quoted argument
+                     arg_start = p + 1; // start of quote
                  }
                  else
                  {
-                     *p = '\0'; // End of quoted argument
+                     *p = '\0'; // end of quoted arg
                      cmd.argv[cmd.argc++] = arg_start;
                      arg_start = NULL;
                  }
              }
              else if (!in_quotes && isspace((unsigned char)*p))
              {
-                 *p = '\0'; // Null terminate argument
+                 *p = '\0'; // null terminate arg
                  if (arg_start)
                  {
                      cmd.argv[cmd.argc++] = arg_start;
@@ -113,7 +113,7 @@
              }
              else if (!arg_start)
              {
-                 arg_start = p; // Start of a new argument
+                 arg_start = p; // start of new arg
              }
              p++;
          }
@@ -130,7 +130,7 @@
              continue;
          }
  
-         // Built-in command handling
+         // built in commands
          if (strcmp(cmd.argv[0], EXIT_CMD) == 0)
          {
              printf("Exiting shell\n");
@@ -145,7 +145,7 @@
          {
              if (cmd.argc == 1)
              {
-                 // Do nothing when no argument is provided
+                 // nothing
              }
              else if (cmd.argc > 1)
              {
@@ -157,7 +157,7 @@
              continue;
          }
  
-         // Execute external command
+         // external commands (fork and exec)
          pid_t pid = fork();
          if (pid == 0)
          {
