@@ -82,33 +82,45 @@
          }
  
          // Handle quoted arguments and space elimination
-         cmd.argc = 0;
-         cmd._cmd_buffer = start;
+         char *p = start;
          bool in_quotes = false;
-         char *token = strtok(start, " ");
+         char *arg_start = NULL;
          
-         while (token && cmd.argc < CMD_ARGV_MAX - 1)
+         while (*p)
          {
-             if (token[0] == '"')
+             if (*p == '"')
              {
-                 in_quotes = true;
-                 cmd.argv[cmd.argc++] = token + 1;
-             }
-             else if (in_quotes)
-             {
-                 strcat(cmd.argv[cmd.argc - 1], " ");
-                 strcat(cmd.argv[cmd.argc - 1], token);
-                 if (token[strlen(token) - 1] == '"')
+                 in_quotes = !in_quotes;
+                 if (in_quotes)
                  {
-                     in_quotes = false;
-                     token[strlen(token) - 1] = '\0';
+                     arg_start = p + 1; // Start of quoted argument
+                 }
+                 else
+                 {
+                     *p = '\0'; // End of quoted argument
+                     cmd.argv[cmd.argc++] = arg_start;
+                     arg_start = NULL;
                  }
              }
-             else
+             else if (!in_quotes && isspace((unsigned char)*p))
              {
-                 cmd.argv[cmd.argc++] = token;
+                 *p = '\0'; // Null terminate argument
+                 if (arg_start)
+                 {
+                     cmd.argv[cmd.argc++] = arg_start;
+                     arg_start = NULL;
+                 }
              }
-             token = strtok(NULL, " ");
+             else if (!arg_start)
+             {
+                 arg_start = p; // Start of a new argument
+             }
+             p++;
+         }
+         
+         if (arg_start)
+         {
+             cmd.argv[cmd.argc++] = arg_start;
          }
          cmd.argv[cmd.argc] = NULL;
  
