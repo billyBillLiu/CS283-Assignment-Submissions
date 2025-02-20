@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include "dshlib.h"
 #include "dragon.h"
+#include <errno.h>
 
 /*
  * Implement your exec_local_cmd_loop function by building a loop that prompts the 
@@ -52,6 +53,8 @@
  *  Standard Library Functions You Might Want To Consider Using (assignment 2+)
  *      fork(), execvp(), exit(), chdir()
  */
+ static int last_exit_code = 0;
+
  int exec_local_cmd_loop()
  {
      char *cmd_buff = malloc(SH_CMD_MAX);
@@ -156,6 +159,10 @@
                  }
              }
              continue;
+         } else if (strcmp(cmd.argv[0], "rc") == 0)  // built-in "rc" command
+         {
+             printf("%d\n", last_exit_code);
+             continue;
          }
  
          // external commands (fork and exec)
@@ -163,8 +170,18 @@
          if (pid == 0)
          {
              execvp(cmd.argv[0], cmd.argv);
-             perror(CMD_ERR_EXECUTE);
-             exit(ERR_EXEC_CMD);
+             switch (errno)
+            {
+                case ENOENT:
+                    fprintf(stderr, "Command not found in PATH\n");
+                    exit(2);
+                case EACCES:
+                    fprintf(stderr, "Permission denied: %s\n", cmd.argv[0]);
+                    exit(3);
+                default:
+                    perror(CMD_ERR_EXECUTE);
+                    exit(errno);
+            }
          }
          else if (pid > 0)
          {
@@ -172,7 +189,7 @@
              waitpid(pid, &status, 0);
              if (WIFEXITED(status))
              {
-                 int exit_code = WEXITSTATUS(status);
+                 last_exit_code = WEXITSTATUS(status);
                  // printf("Process exited with status %d\n", exit_code);
              }
          }
