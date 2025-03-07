@@ -137,3 +137,4 @@ exit
 EOF
     [[ "$output" == *"0"* ]]  # 0 is "ok"
 }
+

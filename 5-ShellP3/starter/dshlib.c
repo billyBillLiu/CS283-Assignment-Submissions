@@ -274,6 +274,7 @@ int exec_cmd(cmd_buff_t *cmd) {
         int status;
         waitpid(pid, &status, 0);
         if (WIFEXITED(status)) {
+
             return WEXITSTATUS(status);
         }
     } else {
@@ -287,20 +288,13 @@ int exec_cmd(cmd_buff_t *cmd) {
 
 int execute_pipeline(command_list_t *clist) {
     int num_cmds = clist->num;
-    int pipe_fds[CMD_MAX - 1][2];  // Pipes (CMD_MAX - 1 since we need n-1 pipes for n commands)
+    int pipe_fds[CMD_MAX - 1][2];
     pid_t pids[CMD_MAX];
+    int last_status = OK;
+    int error_occurred = 0;  // Track if any command fails
 
     for (int i = 0; i < num_cmds; i++) {
-
-        /*
-        fprintf(stderr, "DEBUG: Executing command %d: %s", i, clist->commands[i].argv[0]);
-        for (int j = 1; clist->commands[i].argv[j] != NULL; j++) {
-            fprintf(stderr, " %s", clist->commands[i].argv[j]);
-        }
-        fprintf(stderr, "\n");
-        */
-
-        if (i < num_cmds - 1) { // Create a pipe if not the last command
+        if (i < num_cmds - 1) {
             if (pipe(pipe_fds[i]) == -1) {
                 perror("pipe");
                 return ERR_EXEC_CMD;
@@ -313,37 +307,38 @@ int execute_pipeline(command_list_t *clist) {
             return ERR_EXEC_CMD;
         }
 
-        if (pids[i] == 0) { // Child process
-            if (i > 0) { // Not the first command, set stdin to previous pipe read-end
-                dup2(pipe_fds[i - 1][0], STDIN_FILENO);
-            }
-            if (i < num_cmds - 1) { // Not the last command, set stdout to current pipe write-end
-                dup2(pipe_fds[i][1], STDOUT_FILENO);
-            }
+        if (pids[i] == 0) {  // Child process
+            if (i > 0) { dup2(pipe_fds[i - 1][0], STDIN_FILENO); }
+            if (i < num_cmds - 1) { dup2(pipe_fds[i][1], STDOUT_FILENO); }
 
-            // Close all pipe FDs in child
             for (int j = 0; j < num_cmds - 1; j++) {
                 close(pipe_fds[j][0]);
                 close(pipe_fds[j][1]);
             }
 
-            // Execute command
             execvp(clist->commands[i].argv[0], clist->commands[i].argv);
             perror("execvp");
-            exit(ERR_EXEC_CMD);
+            exit(ERR_EXEC_CMD);  // Exit with error code if execvp fails
         }
     }
 
-    // Parent process: Close all pipe ends
+    // Parent process: Close pipes
     for (int i = 0; i < num_cmds - 1; i++) {
         close(pipe_fds[i][0]);
         close(pipe_fds[i][1]);
     }
 
-    // Wait for all child processes
+    // Wait for all child processes and check their exit statuses
     for (int i = 0; i < num_cmds; i++) {
-        waitpid(pids[i], NULL, 0);
+        int status;
+        waitpid(pids[i], &status, 0);
+        if (WIFEXITED(status)) {
+            int exit_status = WEXITSTATUS(status);
+            if (exit_status == ERR_EXEC_CMD) {
+                error_occurred = 1;  // Mark that a command failed
+            }
+        }
     }
 
-    return OK;
+    return error_occurred ? ERR_EXEC_CMD : OK;
 }

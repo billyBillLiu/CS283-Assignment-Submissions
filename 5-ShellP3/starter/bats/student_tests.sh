@@ -89,3 +89,32 @@ EOF
     [[ "$output" == *"1000"* ]] 
 }
 
+# Test multiple piped commands with different transformations
+@test "Complex pipeline with multiple transformations" {
+    run $TEST_SHELL <<< "echo 'Hello World' | tr ' ' '\n' | sort | tr -d '\n'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"HelloWorld"* ]]
+}
+
+
+# Test piping with a large amount of data
+@test "Large data through pipeline" {
+    run $TEST_SHELL <<< "seq 1 10000 | awk '{sum+=\$1} END {print sum}'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"50005000"* ]]
+}
+
+# Test maximum number of pipes allowed
+@test "Maximum number of pipes" {
+    run $TEST_SHELL <<< "echo start $(for i in $(seq 1 $((CMD_MAX - 1))); do echo "| cat"; done)"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"start"* ]]
+}
+
+
+# Test chained pipes modifying text
+@test "Chained text modification in pipes" {
+    run $TEST_SHELL <<< "echo 'TeStInG' | tr '[:upper:]' '[:lower:]' | tr '[:lower:]' '[:upper:]'"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"TESTING"* ]]
+}
