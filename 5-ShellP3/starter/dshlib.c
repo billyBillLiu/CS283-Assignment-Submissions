@@ -220,6 +220,8 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
         if (chdir(cmd->argv[1]) != 0) {
             perror("cd");
         }
+
+        printf("Attempting to cd into: %s\n", cmd->argv[1]);
         return BI_EXECUTED;
     }
 
@@ -276,6 +278,7 @@ int exec_cmd(cmd_buff_t *cmd) {
         }
     } else {
         perror("fork failed");
+        return ERR_EXEC_CMD;
     }
 
     return ERR_EXEC_CMD;

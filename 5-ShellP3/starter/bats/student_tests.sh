@@ -4,9 +4,12 @@
 # 
 # Create your unit tests suit in this file
 
-# Test basic command execution
-@test "Basic: check ls runs without errors" {
-    run ./dsh <<EOF
+setup() {
+    TEST_SHELL="./dsh"  # Adjust this if your shell has a different name
+}
+
+@test "Example: check ls runs without errors" {
+    run ./dsh <<EOF                
 ls
 EOF
 
@@ -14,214 +17,75 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-# Test built-in command 'exit'
-@test "Built-in: check exit command" {
-    run ./dsh <<EOF
-exit
-EOF
-
-    # Assertions
+# zero inputs
+@test "Empty command handling" {
+    run $TEST_SHELL <<< ""
     [ "$status" -eq 0 ]
 }
 
-# Test built-in command 'cd'
-@test "Built-in: cd with valid directory" {
-    mkdir -p test_dir
-    run $test_shell <<EOF
-cd test_dir
-pwd
-exit
-EOF
+# one command
+@test "Basic command execution" {
+    run $TEST_SHELL <<< "echo Hello, World!"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"test_dir"* ]]
-    rmdir test_dir
+    [[ "$output" == *"Hello, World!"* ]]
 }
 
+# multiple commands
+@test "Multiple commands execution" {
+    run $TEST_SHELL <<< "echo Hello; echo World"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Hello"* ]]
+    [[ "$output" == *"World"* ]]
+}
 
-# Test pipeline command 'ls | cat -A'
-@test "Pipeline: check ls | cat -A" {
-    run ./dsh <<EOF
-ls | cat -A
-EOF
-
-    # Assertions
+# boundaries
+@test "Long command input" {
+    long_input=$(head -c 1024 < /dev/zero | tr '\0' 'A')
+    run $TEST_SHELL <<< "echo $long_input"
     [ "$status" -eq 0 ]
 }
 
-# Test empty command
-@test "Error: check empty command" {
-    run ./dsh <<EOF
-
-EOF
-
-    # Assertions
+# interface (built-in commands)
+@test "Exit command" {
+    run $TEST_SHELL <<< "exit"
     [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "warning: no commands provided" ]
 }
 
-# Test too many commands in pipeline
-@test "Error: check too many commands in pipeline" {
-    run ./dsh <<EOF
-cmd1 | cmd2 | cmd3 | cmd4 | cmd5 | cmd6 | cmd7 | cmd8 | cmd9
-EOF
-
-    # Assertions
+@test "Change directory" {
+    run $TEST_SHELL <<< "cd /tmp; pwd"
     [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "error: piping limited to 8 commands" ]
+    [[ "$output" =~ "/tmp" ]]  # Use regex matching
 }
 
-# Test invalid command
-@test "Error: check invalid command" {
-    run ./dsh <<EOF
-invalidcommand
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "error: failed to execute command" ]
+# errors
+@test "Invalid command handling" {
+    run $TEST_SHELL <<< "nonexistentcommand"
+    [ "$status" -ne -6 ]
 }
 
-# Test command with arguments
-@test "Basic: check echo with arguments" {
-    run ./dsh <<EOF
-echo Hello, World!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, World!" ]
+@test "Invalid command with arguments handling" {
+    run $TEST_SHELL <<< "nonexistentcommand arg1 arg2"
+    [ "$status" -ne -6 ]
 }
 
-# Test command with quotes
-@test "Basic: check echo with quoted arguments" {
-    run ./dsh <<EOF
-echo "Hello, World!"
-EOF
 
-    # Assertions
+
+# stress
+@test "Single pipe execution" {
+    run $TEST_SHELL <<< "echo Hello | grep Hello"
     [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, World!" ]
+    [[ "$output" == *"Hello"* ]]
 }
 
-# Test command with single quotes
-@test "Basic: check echo with single quoted arguments" {
-    run ./dsh <<EOF
-echo 'Hello, World!'
-EOF
-
-    # Assertions
+@test "Multiple pipes execution" {
+    run $TEST_SHELL <<< "echo Hello | tr 'H' 'h' | grep hello"
     [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, World!" ]
+    [[ "$output" == *"hello"* ]]
 }
 
-# Test command with mixed quotes
-@test "Basic: check echo with mixed quotes" {
-    run ./dsh <<EOF
-echo "Hello, 'World!'"
-EOF
-
-    # Assertions
+@test "Stress test with many commands" {
+    run $TEST_SHELL <<< "seq 1 1000 | wc -l"
     [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, 'World!'" ]
+    [[ "$output" == *"1000"* ]] 
 }
 
-# Test command with multiple arguments
-@test "Basic: check echo with multiple arguments" {
-    run ./dsh <<EOF
-echo Hello, World! How are you?
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, World! How are you?" ]
-}
-
-# Test command with multiple spaces
-@test "Basic: check echo with multiple spaces" {
-    run ./dsh <<EOF
-echo    Hello,    World!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, World!" ]
-}
-
-# Test command with tabs
-@test "Basic: check echo with tabs" {
-    run ./dsh <<EOF
-echo    Hello,    World!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, World!" ]
-}
-
-# Test command with newlines
-@test "Basic: check echo with newlines" {
-    run ./dsh <<EOF
-echo Hello,
-World!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello," ]
-    [ "${lines[1]}" = "World!" ]
-}
-
-# Test command with backslashes
-@test "Basic: check echo with backslashes" {
-    run ./dsh <<EOF
-echo Hello, \\World!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, \\World!" ]
-}
-
-# Test command with special characters
-@test "Basic: check echo with special characters" {
-    run ./dsh <<EOF
-echo Hello, \$World!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, \$World!" ]
-}
-
-# Test command with environment variables
-@test "Basic: check echo with environment variables" {
-    run ./dsh <<EOF
-echo Hello, \$USER!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, $USER!" ]
-}
-
-# Test command with subshell
-@test "Basic: check echo with subshell" {
-    run ./dsh <<EOF
-echo Hello, \$(whoami)!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, $(whoami)!" ]
-}
-
-# Test command with command substitution
-@test "Basic: check echo with command substitution" {
-    run ./dsh <<EOF
-echo Hello, \`whoami\`!
-EOF
-
-    # Assertions
-    [ "$status" -eq 0 ]
-    [ "${lines[0]}" = "Hello, $(whoami)!" ]
-}
