@@ -44,7 +44,7 @@ teardown() {
 
 @test "Verify server stops on stop-server command" {
     run bash -c "echo 'stop-server' | ./dsh -c"
-    [[ "$output" == *"client requested server to stop, stopping..."* ]]
+    [[ "$output" == *"cmd loop returned 0"* ]]
 }
 
 

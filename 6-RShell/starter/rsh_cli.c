@@ -148,7 +148,6 @@ int exec_remote_cmd_loop(char *address, int port)
         }
 
         if (strcmp(cmd_buff, "exit") == 0 || strcmp(cmd_buff, "stop-server") == 0)
-            printf("%s\n", RCMD_MSG_SVR_STOP_REQ);
             break;
     }
 

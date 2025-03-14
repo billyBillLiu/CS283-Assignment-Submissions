@@ -228,7 +228,7 @@ int process_cli_requests(int svr_socket)
         close(cli_socket);
         if (rc == OK_EXIT)
         {
-            printf("%s\n", RCMD_MSG_SVR_STOP_REQ);
+            printf("%s", RCMD_MSG_SVR_STOP_REQ);
             break;            
         }
     }
@@ -303,7 +303,6 @@ int exec_client_requests(int cli_socket)
         if (strcmp(io_buff, "stop-server") == 0)
         {
             free(io_buff);
-            printf("%s\n", RCMD_MSG_SVR_STOP_REQ);
             return OK_EXIT;
         }
 
