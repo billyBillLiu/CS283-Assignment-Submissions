@@ -114,25 +114,20 @@ int exec_remote_cmd_loop(char *address, int port)
     while (1)
     {
         // TODO print prompt
+        printf("%s", SH_PROMPT);
 
         // TODO fgets input
-
-        // TODO send() over cli_socket
-
-        // TODO recv all the results
-
-        // TODO break on exit command
-
-        printf("%s", SH_PROMPT);
         if (!fgets(cmd_buff, RDSH_COMM_BUFF_SZ, stdin))
             break;
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
-        if (send(cli_socket, cmd_buff, strlen(cmd_buff) + 1, 0) < 0)
-        {
+        // TODO send() over cli_socket
+        if (send(cli_socket, cmd_buff, strlen(cmd_buff) + 1, 0) < 0) {
             perror("send");
             break;
         }
+
+        // TODO recv all the results
         is_eof = 0;
         while (!is_eof)
         {
@@ -147,6 +142,7 @@ int exec_remote_cmd_loop(char *address, int port)
             printf("%.*s", (int)io_size, rsp_buff);
         }
 
+        // TODO break on exit command
         if (strcmp(cmd_buff, "exit") == 0 || strcmp(cmd_buff, "stop-server") == 0)
             break;
     }
